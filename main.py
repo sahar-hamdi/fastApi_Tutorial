@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from enum import Enum
 from pydantic import BaseModel
+from fastapi import Query
 
 
 app = FastAPI()
@@ -50,63 +51,64 @@ async def get_user_type(user_type : User_List, user_id):
     return {"user" : {user_type.name, user_id}}
 
 
-#query parameters
+# #query parameters: hya btkon ay haga b3d el ? fl URL (endpoint)
+# # http://127.0.0.1:8000/items?id=2
+ 
+# items = [
+#     {"id":1 , "name":"book" , "price":"15" , "stock": True},
+#     {"id":2 , "name":"game" , "price":"50" , "stock": True},
+#     {"id":3 , "name":"cd" , "price":"30" , "stock": True},
+#     {"id":4 , "name":"magazine" , "price":"10" , "stock": False},
+#     {"id":5 , "name":"book" , "price":"10" , "stock": True},
+#     {"id":6 , "name":"game" , "price":"10" , "stock": True}
+# ]
 
-items = [
-    {"id":1 , "name":"book" , "price":"15" , "stock": True},
-    {"id":2 , "name":"game" , "price":"50" , "stock": True},
-    {"id":3 , "name":"cd" , "price":"30" , "stock": True},
-    {"id":4 , "name":"magazine" , "price":"10" , "stock": False},
-    {"id":5 , "name":"book" , "price":"10" , "stock": True},
-    {"id":6 , "name":"game" , "price":"10" , "stock": True}
-]
-
-@app.get("/items")
-async def list_items(
-    start : int = 0,
-    end : int = 10,
-    id : int = None,
-    name : str = None
-):
-    if id:
-        item = next((item for item in items if item["id"] == id), None)
-        if item:
-            return item
+# @app.get("/items")
+# async def list_items(
+#     start : int = 0,
+#     end : int = 10,
+#     id : int = None,
+#     name : str = None
+# ):
+#     if id:
+#         item = next((item for item in items if item["id"] == id), None)
+#         if item:
+#             return item
         
-        else:
-            return {"message" : "item not found"}
+#         else:
+#             return {"message" : "item not found"}
 
-    if name:
-        filtered = []
-        for item in items:
-            if item["name"] == name:
-                filtered.append(item)
-        return filtered
+#     if name:
+#         filtered = []
+#         for item in items:
+#             if item["name"] == name:
+#                 filtered.append(item)
+#         return filtered
 
-    return items[start : start + end]
-
-
-@app.get("/items/prices")
-async def sort_price(range : int = None):
-    sorted_price = sorted(items , key= lambda x:x["price"] , reverse=True)
-
-    if range:
-        price_range = [item for item in sorted_price if item["price"] <= str(range)]
-
-        return price_range
-    else:
-        return sorted_price
+#     return items[start : start + end]
 
 
-@app.get("/items/stock")
-async def get_stock(in_stock:bool = True):
-    if not in_stock:
-        item = [item for item in items if item["stock"] == False]
+# @app.get("/items/prices")
+# async def sort_price(range : int = None):
+#     sorted_price = sorted(items , key= lambda x:x["price"] , reverse=True)
 
-        return item
-    else:
-        item = [item for item in items if item["stock"] == True]
-        return item
+#     if range:
+#         price_range = [item for item in sorted_price if item["price"] <= str(range)]
+
+#         return price_range
+#     else:
+#         return sorted_price
+
+
+# @app.get("/items/stock")
+# async def get_stock(in_stock:bool = True):
+#     if not in_stock:
+#         item = [item for item in items if item["stock"] == False]
+
+#         return item
+#     else:
+#         item = [item for item in items if item["stock"] == True]
+#         return item
 
 
 
@@ -118,4 +120,33 @@ class Item(BaseModel):
 
 @app.post("/items")
 async def create_item(item: Item):
-    return item
+    item_dict = item.dict()
+
+    if item.tax:
+        price_with_tax = item.price + (item.price * item.tax)
+        item_dict.update({"total_price" : price_with_tax})
+
+
+    return item_dict
+
+
+# put is for data updating
+@app.put("/items/{item_id}")
+async def update_item(item_id : int, item:Item):
+    return {"item_id" : item_id, **item.dict()}
+
+
+
+# # Add constraints for the user's name input
+
+@app.get("/items")
+async def read_items(name : str = "unknown"):
+     # lw sbto kda (name : str) wl user mdkhlsh name hygeb error fa 3lshan
+     # dah may7slsh ha7ot default value lw el user mdkhlsh name tzhr hya (unkown)
+     return {"name" : name}
+
+
+#regex to prevent user enter numbers in the name input
+@app.get("validate")
+async def validate_item(name : str = Query(..., min_length = 3, max_length = 50, regex = "^[a-zA-Z\\s]+$")):
+    return {"name" : name}
