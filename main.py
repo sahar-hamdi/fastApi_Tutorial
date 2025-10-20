@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from enum import Enum
+from pydantic import BaseModel
+
 
 app = FastAPI()
 @app.get("/")
@@ -48,7 +50,7 @@ async def get_user_type(user_type : User_List, user_id):
     return {"user" : {user_type.name, user_id}}
 
 
-query parameters
+#query parameters
 
 items = [
     {"id":1 , "name":"book" , "price":"15" , "stock": True},
@@ -105,3 +107,15 @@ async def get_stock(in_stock:bool = True):
     else:
         item = [item for item in items if item["stock"] == True]
         return item
+
+
+
+class Item(BaseModel):
+    name : str
+    description : str | None = None
+    price : float
+    tax : float | None = None
+
+@app.post("/items")
+async def create_item(item: Item):
+    return item
